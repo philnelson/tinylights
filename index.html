@@ -58,6 +58,13 @@
                 background-color:#947d2f;
                 border-right: none;
                 border-bottom: none;
+                z-index: 1;
+                position: relative;
+                cursor: pointer;
+            }
+            
+            .tile:hover {
+                opacity: .8;
             }
             
             #controls {
@@ -67,14 +74,22 @@
             }
             
             #controls > .control {
-                height: 40px;
+                height: 60px;
                 width: 40px;
                 float: left;
+                text-align: center;
             }
             
             #controls > .control > i {
-                margin-left: 5px;
                 margin-top: 3px;
+                clear: both;
+            }
+            
+            #controls > .control > .metric {
+                clear: both;
+                width: 40px;
+                display: block;
+                font-size: 16px;
             }
             
             #controls > .control#commercial, .tile.commercial {
@@ -94,25 +109,27 @@
             }
             
             .car {
-                height: 50px;
-                width: 50px;
+                height: 10px;
+                width: 10px;
                 background-color: #000;
+                z-index: 2;
+                position: relative;
             }
             
             .person {
-                height: 5px;
-                width: 5px;
-                background-color: #4f4520;
+                
             }
+            
+            
         </style>
         
         <div id="game"></div>
         
         <div id="controls">
-            <div id="residential" class="control" data-label="Residential Buildings"><i class="fa fa-2x fa-home"></i></div>
-            <div id="commercial" class="control" data-label="Commercial Buildings"><i class="fa fa-2x fa-building"></i></div>
-            <div id="industrial" class="control" data-label="Industrial Buildings"><i class="fa fa-2x"></i></div>
-            <div id="road" class="control" data-label="Road"><i class="fa fa-road fa-2x"></i></div>
+            <div id="residential" class="control" data-label="Residential Buildings"><i class="fa fa-2x fa-home"></i><span class="metric"></span></div>
+            <div id="commercial" class="control" data-label="Commercial Buildings"><i class="fa fa-2x fa-building"></i><span class="metric"></span></div>
+            <div id="industrial" class="control" data-label="Industrial Buildings"><i class="fa fa-2x"></i><span class="metric"></span></div>
+            <div id="road" class="control" data-label="Road"><i class="fa fa-road fa-2x"></i><span class="metric"></span></div>
             <div id="destroy" class="control" data-label="Destroy"><i class="fa fa-bomb fa-2x"></i></div>
         </div>
         
@@ -128,14 +145,71 @@
                 
                 var gameState = {
                     "placing": "residential",
+                    "cash": 1000,
+                    "people": [],
+                    "speed": 1000
                 }
+                
+                function initCity() {
+                    
+                }
+                
+                function getRandomInt(min, max) {
+                    return Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+                
+                function updateMetrics() {
+                    $('#residential .metric').text($('#game > .residential').length);
+                    $('#commercial .metric').text($('#game > .commercial').length);
+                    $('#industrial .metric').text($('#game > .industrial').length);
+                    $('#road .metric').text($('#game > .road').length);
+                    
+                    $( "#game > .tile" ).each(function( index ) {
+                        $(this).children('.label').text($(this).attr('data-level'));
+                        
+                        if($(this).hasClass('residential'))
+                        {
+                            
+                            if($(this).attr('data-occupied') == "false")
+                            {
+                                moveIn($(this));
+                            }
+                        }
+                        
+                    });
+                    
+                }
+                
+                function moveIn(to) {
+                    
+                    person = {
+                        name: "Steve" + gameState['people'].length,
+                        age: getRandomInt(16,88),
+                        lives: to
+                    }
+                    
+                    gameState['people'].push(person);
+                    
+                    $('#game').append("<div class='person'></div>");
+                    
+                    to.attr('data-occupied',true).attr('data-level',1).attr('title', person.name + "'s house");
+                    
+                    console.log(person.name + ' moved in!');
+                }
+                
+                function brainFunction() {
+                    $( "#game > .person" ).each(function( index ) {
+                      console.log(gameState['people'][index]);
+                    });
+                }
+                
+                setInterval(function(){
+                    brainFunction();
+                    updateMetrics();
+                },gameState['speed']);
                 
                 for(i=0; i<256; i++) {
-                    $('#game').append("<div class='tile'></div>");
-                }
-                
-                for(i=0; i<2; i++) {
-                    $('#game').append("<div class='car'></div>");
+                    $('#game').append("<div class='tile' data-level='0' data-value='0'><span class='label'></span></div>");
                 }
                 
                 $('.tile').on('click', function(){
@@ -144,6 +218,9 @@
                     {
                         $(this).addClass('blinker');
                         document.getElementById('explosion').play();
+                        
+                        $(this).attr('data-level',0);
+                        $(this).attr('data-occupied',false);
                         
                         $(this).one('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', function(){
                             $(this).removeClass('residential');
@@ -158,7 +235,15 @@
                     {
                         if(!$(this).hasClass('residential') || !$(this).hasClass('commercial') || !$(this).hasClass('industrial') || !$(this).hasClass('road'))
                         {
-                            $(this).addClass(gameState['placing']);
+                            if(!$(this).hasClass('road'))
+                            {
+                                $(this).addClass(gameState['placing']).attr('data-occupied',false);
+                            }
+                            else
+                            {
+                                $(this).addClass(gameState['placing']);
+                            }
+                            
                             document.getElementById('place').play();
                         }
                     }
